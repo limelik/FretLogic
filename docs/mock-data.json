@@ -1,0 +1,33 @@
+{
+  "demoUser": {
+    "email": "demo@fretlogic.app",
+    "displayName": "Demo Player",
+    "profileHeadline": "Locked on precision, position shifts, and mode fluency."
+  },
+  "dashboard": {
+    "stats": [
+      { "label": "Completed Exercises", "value": "22", "helper": "Tracked from note and scale drills" },
+      { "label": "Accuracy", "value": "85%", "helper": "Average over recent sessions" },
+      { "label": "Streak", "value": "2 days", "helper": "Practice consistency window" },
+      { "label": "Favorite Scales", "value": "2", "helper": "Saved voicings and patterns" }
+    ],
+    "recentActivity": [
+      { "title": "NOTE MACHINE", "detail": "18/20 correct • +180 pts" },
+      { "title": "SCALE MACHINE", "detail": "12/15 correct • +120 pts" }
+    ]
+  },
+  "favoriteScales": [
+    {
+      "nickname": "Night Run Dorian",
+      "rootNote": "A",
+      "scaleType": "dorian",
+      "notes": ["A", "B", "C", "D", "E", "F#", "G"]
+    },
+    {
+      "nickname": "Low-End Blues",
+      "rootNote": "E",
+      "scaleType": "blues",
+      "notes": ["E", "G", "A", "Bb", "B", "D"]
+    }
+  ]
+}

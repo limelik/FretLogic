@@ -1,0 +1,15 @@
+.DS_Store
+.idea/
+.vscode/
+node_modules/
+dist/
+build/
+.gradle/
+coverage/
+*.log
+.env
+.env.local
+backend/target/
+frontend/dist/
+frontend/.vite/
+postgres-data/

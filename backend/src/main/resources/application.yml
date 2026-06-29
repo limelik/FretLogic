@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fretlogic}
+    username: ${SPRING_DATASOURCE_USERNAME:fretlogic}
+    password: ${SPRING_DATASOURCE_PASSWORD:fretlogic}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-super-secret-key-for-production}
+    expiration-minutes: 1440
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173}
+
+logging:
+  level:
+    org.springframework.security: INFO

@@ -1,0 +1,49 @@
+<svg width="1400" height="860" viewBox="0 0 1400 860" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="860" rx="42" fill="#050816"/>
+  <rect width="1400" height="860" rx="42" fill="url(#paint0_radial)"/>
+  <rect x="48" y="42" width="1304" height="776" rx="34" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="92" y="112" fill="#9FE8E0" font-family="Arial, sans-serif" font-size="22" letter-spacing="7">FRETLOGIC</text>
+  <text x="92" y="220" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="700">Sharpen note vision.</text>
+  <text x="92" y="300" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="700">Map every scale.</text>
+  <text x="92" y="380" fill="#AAB6D3" font-family="Arial, sans-serif" font-size="28">Dark premium practice platform for focused guitar training.</text>
+  <rect x="92" y="438" width="160" height="56" rx="18" fill="url(#paint1_linear)"/>
+  <text x="143" y="474" fill="#06101A" font-family="Arial, sans-serif" font-size="22" font-weight="700">Login</text>
+  <rect x="270" y="438" width="176" height="56" rx="18" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+  <text x="318" y="474" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="700">Register</text>
+  <rect x="464" y="438" width="248" height="56" rx="18" fill="rgba(94,234,212,0.08)" stroke="rgba(94,234,212,0.22)"/>
+  <text x="514" y="474" fill="#BBF7F0" font-family="Arial, sans-serif" font-size="22" font-weight="700">Continue as Guest</text>
+  <g opacity="0.85">
+    <rect x="776" y="164" width="490" height="392" rx="30" fill="rgba(10,17,34,0.82)" stroke="rgba(255,255,255,0.12)"/>
+    <rect x="812" y="212" width="418" height="82" rx="24" fill="rgba(255,255,255,0.04)"/>
+    <rect x="812" y="316" width="418" height="82" rx="24" fill="rgba(255,255,255,0.04)"/>
+    <rect x="812" y="420" width="418" height="98" rx="24" fill="rgba(255,255,255,0.04)"/>
+    <circle cx="866" cy="253" r="14" fill="#6EE7B7"/>
+    <circle cx="1018" cy="253" r="14" fill="#67E8F9"/>
+    <circle cx="1170" cy="253" r="14" fill="#F9A8D4"/>
+    <text x="840" y="180" fill="#9FE8E0" font-family="Arial, sans-serif" font-size="18" letter-spacing="4">STUDIO DASHBOARD</text>
+  </g>
+  <g opacity="0.28">
+    <path d="M838 625H1262" stroke="white" stroke-width="4"/>
+    <path d="M838 660H1262" stroke="white" stroke-width="4"/>
+    <path d="M838 695H1262" stroke="white" stroke-width="4"/>
+    <path d="M838 730H1262" stroke="white" stroke-width="4"/>
+    <path d="M838 765H1262" stroke="white" stroke-width="4"/>
+    <path d="M900 600V790" stroke="white" stroke-width="4"/>
+    <path d="M974 600V790" stroke="white" stroke-width="4"/>
+    <path d="M1048 600V790" stroke="white" stroke-width="4"/>
+    <path d="M1122 600V790" stroke="white" stroke-width="4"/>
+    <path d="M1196 600V790" stroke="white" stroke-width="4"/>
+    <path d="M1270 600V790" stroke="white" stroke-width="4"/>
+  </g>
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(224 94) rotate(37.2268) scale(830.195 1126.76)">
+      <stop stop-color="#143C57"/>
+      <stop offset="0.39" stop-color="#08101E"/>
+      <stop offset="1" stop-color="#050816"/>
+    </radialGradient>
+    <linearGradient id="paint1_linear" x1="92" y1="438" x2="252" y2="494" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67E8F9"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+</svg>
