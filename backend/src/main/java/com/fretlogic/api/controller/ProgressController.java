@@ -4,6 +4,10 @@ import com.fretlogic.api.dto.dashboard.DashboardResponse;
 import com.fretlogic.api.dto.progress.ExerciseResultRequest;
 import com.fretlogic.api.dto.progress.FavoriteScaleRequest;
 import com.fretlogic.api.dto.progress.FavoriteScaleResponse;
+import com.fretlogic.api.dto.progress.LearnedNoteRequest;
+import com.fretlogic.api.dto.progress.LearnedNoteResponse;
+import com.fretlogic.api.dto.progress.LearnedScaleShapeRequest;
+import com.fretlogic.api.dto.progress.LearnedScaleShapeResponse;
 import com.fretlogic.api.dto.progress.PracticeSessionRequest;
 import com.fretlogic.api.dto.progress.SavedProgressRequest;
 import com.fretlogic.api.dto.progress.SavedProgressResponse;
@@ -83,5 +87,25 @@ public class ProgressController {
     @DeleteMapping("/favorite-scales/{favoriteScaleId}")
     public void deleteFavoriteScale(Authentication authentication, @PathVariable Long favoriteScaleId) {
         progressService.deleteFavoriteScale(authentication.getName(), favoriteScaleId);
+    }
+
+    @GetMapping("/learned-notes")
+    public List<LearnedNoteResponse> learnedNotes(Authentication authentication) {
+        return progressService.learnedNotes(authentication.getName());
+    }
+
+    @PostMapping("/learned-notes")
+    public LearnedNoteResponse saveLearnedNote(Authentication authentication, @Valid @RequestBody LearnedNoteRequest request) {
+        return progressService.saveLearnedNote(authentication.getName(), request);
+    }
+
+    @GetMapping("/learned-scale-shapes")
+    public List<LearnedScaleShapeResponse> learnedScaleShapes(Authentication authentication) {
+        return progressService.learnedScaleShapes(authentication.getName());
+    }
+
+    @PostMapping("/learned-scale-shapes")
+    public LearnedScaleShapeResponse saveLearnedScaleShape(Authentication authentication, @Valid @RequestBody LearnedScaleShapeRequest request) {
+        return progressService.saveLearnedScaleShape(authentication.getName(), request);
     }
 }

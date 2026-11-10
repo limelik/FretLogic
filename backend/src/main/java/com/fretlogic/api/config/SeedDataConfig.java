@@ -55,8 +55,8 @@ public class SeedDataConfig {
             progress.setShowNoteLabels(Boolean.FALSE);
             progress.setSelectedRootNote("A");
             progress.setSelectedScaleType("dorian");
-            progress.setSavedSettingsJson("{\"bpm\":84,\"pacePreset\":\"HARD\",\"fretCount\":15,\"autoAdvance\":true,\"preferSharps\":true}");
-            progress.setNoteMachineStateJson("{\"score\":280,\"streak\":9,\"attempts\":20,\"correct\":18,\"bpm\":84,\"pacePreset\":\"HARD\",\"fretCount\":15,\"autoAdvance\":true}");
+            progress.setSavedSettingsJson("{\"bpm\":120,\"pacePreset\":\"HARD\",\"fretCount\":15,\"preferSharps\":true}");
+            progress.setNoteMachineStateJson("{\"bpm\":120,\"pacePreset\":\"HARD\",\"fretCount\":15,\"targetNote\":\"A\",\"pathIndex\":0,\"selectedPromptNote\":\"A\",\"sequenceIndex\":0}");
             progress.setScaleMachineStateJson("{\"rootNote\":\"A\",\"scaleType\":\"dorian\",\"showLabels\":true,\"fretCount\":15}");
             savedProgressRepository.save(progress);
 

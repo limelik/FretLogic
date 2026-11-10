@@ -10,14 +10,21 @@ export interface StoredAuth {
 
 const defaultProgress: SavedProgress = {
   lastVisitedExercise: 'dashboard',
-  noteMachineStateJson: JSON.stringify({ score: 0, streak: 0, attempts: 0, correct: 0, bpm: 72, pacePreset: 'MEDIUM', fretCount: 15, autoAdvance: true }),
+  noteMachineStateJson: JSON.stringify({ bpm: 90, pacePreset: 'MEDIUM', fretCount: 15, targetNote: 'C', pathIndex: 0, selectedPromptNote: 'ALL', sequenceIndex: 0, preferSharps: true, includeAccidentals: true }),
   scaleMachineStateJson: JSON.stringify({ rootNote: 'E', scaleType: 'major', showLabels: true }),
-  savedSettingsJson: JSON.stringify({ bpm: 72, pacePreset: 'MEDIUM', fretCount: 15, autoAdvance: true, preferSharps: true }),
+  savedSettingsJson: JSON.stringify({ bpm: 90, pacePreset: 'MEDIUM', fretCount: 15, preferSharps: true, includeAccidentals: true }),
   activeTuning: 'standard',
   showNoteLabels: true,
   selectedScaleType: 'major',
   selectedRootNote: 'E',
 };
+
+function normalizeSavedProgress(progress?: Partial<SavedProgress> | null): SavedProgress {
+  return {
+    ...structuredClone(defaultProgress),
+    ...(progress ?? {}),
+  };
+}
 
 export function readJson<T>(key: string, fallback: T): T {
   const raw = window.localStorage.getItem(key);
@@ -65,28 +72,52 @@ export function defaultGuestSnapshot(): GuestSnapshot {
   return {
     dashboard: {
       stats: [
-        { label: 'Completed Exercises', value: '0', helper: 'Guest progress stored on this device' },
-        { label: 'Accuracy', value: '0%', helper: 'Starts building after first drill' },
-        { label: 'Streak', value: '0 days', helper: 'Come back tomorrow to build run' },
-        { label: 'Favorite Scales', value: '0', helper: 'Save scale maps locally' },
+        { label: 'Notes Learned', value: '0/12', helper: 'Guest progress stored on this device' },
+        { label: 'Scale Shapes Learned', value: '0', helper: 'Manual mastery checkoffs' },
+        { label: 'Scales Completed', value: '0', helper: 'All 5 shapes learned in one scale' },
+        { label: 'Favorite Scales', value: '0', helper: 'Saved scale snapshots' },
       ],
-      recentActivity: [
+      noteMastery: [],
+      learnedScaleShapes: [],
+      learningQueue: [],
+      recentWins: [
         { title: 'Guest Mode Ready', detail: 'Local practice tracking enabled', timestamp: now },
       ],
-      accuracyTrend: [],
-      practiceVolume: [],
-      streak: 0,
+      milestones: [],
       lastVisitedExercise: 'dashboard',
     },
     savedProgress: defaultProgress,
     practiceSessions: [],
     exerciseResults: [],
     favoriteScales: [],
+    learnedNotes: [],
+    learnedScaleShapes: [],
   };
 }
 
 export function readGuestSnapshot(): GuestSnapshot {
-  return readJson<GuestSnapshot>(GUEST_SNAPSHOT_KEY, defaultGuestSnapshot());
+  const fallback = defaultGuestSnapshot();
+  const raw = readJson<GuestSnapshot>(GUEST_SNAPSHOT_KEY, fallback);
+  return {
+    ...fallback,
+    ...raw,
+    dashboard: {
+      ...fallback.dashboard,
+      ...(raw.dashboard ?? {}),
+      stats: Array.isArray(raw.dashboard?.stats) ? raw.dashboard.stats : fallback.dashboard.stats,
+      noteMastery: Array.isArray(raw.dashboard?.noteMastery) ? raw.dashboard.noteMastery : fallback.dashboard.noteMastery,
+      learnedScaleShapes: Array.isArray(raw.dashboard?.learnedScaleShapes) ? raw.dashboard.learnedScaleShapes : fallback.dashboard.learnedScaleShapes,
+      learningQueue: Array.isArray(raw.dashboard?.learningQueue) ? raw.dashboard.learningQueue : fallback.dashboard.learningQueue,
+      recentWins: Array.isArray(raw.dashboard?.recentWins) ? raw.dashboard.recentWins : fallback.dashboard.recentWins,
+      milestones: Array.isArray(raw.dashboard?.milestones) ? raw.dashboard.milestones : fallback.dashboard.milestones,
+    },
+    savedProgress: normalizeSavedProgress(raw.savedProgress),
+    practiceSessions: Array.isArray(raw.practiceSessions) ? raw.practiceSessions : [],
+    exerciseResults: Array.isArray(raw.exerciseResults) ? raw.exerciseResults : [],
+    favoriteScales: Array.isArray(raw.favoriteScales) ? raw.favoriteScales : [],
+    learnedNotes: Array.isArray(raw.learnedNotes) ? raw.learnedNotes : [],
+    learnedScaleShapes: Array.isArray(raw.learnedScaleShapes) ? raw.learnedScaleShapes : [],
+  };
 }
 
 export function writeGuestSnapshot(snapshot: GuestSnapshot) {

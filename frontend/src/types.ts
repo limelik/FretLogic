@@ -39,17 +39,40 @@ export interface DashboardActivity {
   timestamp: string;
 }
 
-export interface ChartPoint {
+export interface NoteMasteryItem {
+  noteName: string;
   label: string;
-  value: number;
+  learned: boolean;
+  learnedAt?: string;
+}
+
+export interface LearnedScaleShape {
+  id?: number;
+  rootNote: string;
+  scaleType: string;
+  shapeId: string;
+  learnedAt: string;
+}
+
+export interface LearningQueueItem {
+  title: string;
+  detail: string;
+  href: string;
+}
+
+export interface Milestone {
+  title: string;
+  detail: string;
+  unlocked: boolean;
 }
 
 export interface DashboardResponse {
   stats: StatCard[];
-  recentActivity: DashboardActivity[];
-  accuracyTrend: ChartPoint[];
-  practiceVolume: ChartPoint[];
-  streak: number;
+  noteMastery: NoteMasteryItem[];
+  learnedScaleShapes: LearnedScaleShape[];
+  learningQueue: LearningQueueItem[];
+  recentWins: DashboardActivity[];
+  milestones: Milestone[];
   lastVisitedExercise: string;
 }
 
@@ -153,4 +176,12 @@ export interface GuestSnapshot {
   practiceSessions: PracticeSession[];
   exerciseResults: ExerciseResult[];
   favoriteScales: FavoriteScale[];
+  learnedNotes: LearnedNote[];
+  learnedScaleShapes: LearnedScaleShape[];
+}
+
+export interface LearnedNote {
+  id?: number;
+  noteName: string;
+  learnedAt: string;
 }

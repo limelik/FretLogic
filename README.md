@@ -57,6 +57,10 @@ FretLogic/
 
 ## Local Setup
 
+Install JDK 21 before running the backend (`brew install openjdk@21` on macOS).
+The Maven launcher honors `JAVA_HOME` and detects Homebrew JDK 21 on macOS
+when the active Java version is too old.
+
 1. Copy env file.
 2. Start PostgreSQL.
 3. Run backend.

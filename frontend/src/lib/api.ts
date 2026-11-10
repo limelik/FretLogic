@@ -4,6 +4,8 @@ import type {
   ExerciseResult,
   FavoriteScale,
   FretboardResponse,
+  LearnedNote,
+  LearnedScaleShape,
   NoteExercise,
   PracticeSession,
   SavedProgress,
@@ -85,6 +87,18 @@ export const api = {
   },
   deleteFavoriteScale(id: number, token: string) {
     return request<void>(`/progress/favorite-scales/${id}`, { method: 'DELETE' }, token);
+  },
+  learnedNotes(token: string) {
+    return request<LearnedNote[]>('/progress/learned-notes', { method: 'GET' }, token);
+  },
+  saveLearnedNote(payload: { noteName: string }, token: string) {
+    return request<LearnedNote>('/progress/learned-notes', { method: 'POST', body: JSON.stringify(payload) }, token);
+  },
+  learnedScaleShapes(token: string) {
+    return request<LearnedScaleShape[]>('/progress/learned-scale-shapes', { method: 'GET' }, token);
+  },
+  saveLearnedScaleShape(payload: { rootNote: string; scaleType: string; shapeId: string }, token: string) {
+    return request<LearnedScaleShape>('/progress/learned-scale-shapes', { method: 'POST', body: JSON.stringify(payload) }, token);
   },
   tunings(token: string) {
     return request<Tuning[]>('/music/tunings', { method: 'GET' }, token);

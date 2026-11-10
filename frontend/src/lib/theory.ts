@@ -52,82 +52,12 @@ const NOTE_ALIASES: Record<string, string> = {
   'B#': 'C',
 };
 
-const CAGED_TEMPLATES = [
-  {
-    id: 'c-shape',
-    label: 'C Shape',
-    cagedName: 'C',
-    anchorStringIndex: 1,
-    anchorOccurrence: 0,
-    stringOffsets: [
-      { stringIndex: 0, minOffset: -3, maxOffset: -1 },
-      { stringIndex: 1, minOffset: 0, maxOffset: 3 },
-      { stringIndex: 2, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 3, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 4, minOffset: 1, maxOffset: 3 },
-      { stringIndex: 5, minOffset: 0, maxOffset: 3 },
-    ],
-  },
-  {
-    id: 'a-shape',
-    label: 'A Shape',
-    cagedName: 'A',
-    anchorStringIndex: 1,
-    anchorOccurrence: 1,
-    stringOffsets: [
-      { stringIndex: 0, minOffset: 0, maxOffset: 3 },
-      { stringIndex: 1, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 2, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 3, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 4, minOffset: 0, maxOffset: 3 },
-      { stringIndex: 5, minOffset: 0, maxOffset: 3 },
-    ],
-  },
-  {
-    id: 'g-shape',
-    label: 'G Shape',
-    cagedName: 'G',
-    anchorStringIndex: 0,
-    anchorOccurrence: 0,
-    stringOffsets: [
-      { stringIndex: 0, minOffset: 0, maxOffset: 3 },
-      { stringIndex: 1, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 2, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 3, minOffset: 0, maxOffset: 4 },
-      { stringIndex: 4, minOffset: 0, maxOffset: 3 },
-      { stringIndex: 5, minOffset: 0, maxOffset: 3 },
-    ],
-  },
-  {
-    id: 'e-shape',
-    label: 'E Shape',
-    cagedName: 'E',
-    anchorStringIndex: 0,
-    anchorOccurrence: 1,
-    stringOffsets: [
-      { stringIndex: 0, minOffset: 0, maxOffset: 4 },
-      { stringIndex: 1, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 2, minOffset: 1, maxOffset: 3 },
-      { stringIndex: 3, minOffset: 1, maxOffset: 4 },
-      { stringIndex: 4, minOffset: 2, maxOffset: 5 },
-      { stringIndex: 5, minOffset: 0, maxOffset: 4 },
-    ],
-  },
-  {
-    id: 'd-shape',
-    label: 'D Shape',
-    cagedName: 'D',
-    anchorStringIndex: 2,
-    anchorOccurrence: 0,
-    stringOffsets: [
-      { stringIndex: 0, minOffset: -2, maxOffset: 0 },
-      { stringIndex: 1, minOffset: -2, maxOffset: 0 },
-      { stringIndex: 2, minOffset: 0, maxOffset: 4 },
-      { stringIndex: 3, minOffset: 0, maxOffset: 2 },
-      { stringIndex: 4, minOffset: 0, maxOffset: 3 },
-      { stringIndex: 5, minOffset: 0, maxOffset: 2 },
-    ],
-  },
+const CAGED_SHAPE_META = [
+  { id: 'c-shape', label: 'C Shape', cagedName: 'C' },
+  { id: 'a-shape', label: 'A Shape', cagedName: 'A' },
+  { id: 'g-shape', label: 'G Shape', cagedName: 'G' },
+  { id: 'e-shape', label: 'E Shape', cagedName: 'E' },
+  { id: 'd-shape', label: 'D Shape', cagedName: 'D' },
 ] as const;
 
 export function normalizeNote(note: string) {
@@ -279,34 +209,53 @@ export function buildNotePracticePath(targetNote: string, tuningId: string, fret
 }
 
 export function buildScaleShapes(scale: ScaleResponse) {
-  const rootsByString = new Map<number, number[]>();
-  scale.highlightedPositions
+  const rootWindows = scale.highlightedPositions
     .filter((position) => position.root)
-    .forEach((position) => {
-      const current = rootsByString.get(position.stringIndex) ?? [];
-      if (!current.includes(position.fret)) {
-        current.push(position.fret);
+    .sort((left, right) => {
+      if (left.fret !== right.fret) {
+        return left.fret - right.fret;
       }
-      rootsByString.set(position.stringIndex, current.sort((left, right) => left - right));
-    });
+      return left.stringIndex - right.stringIndex;
+    })
+    .map((position) => {
+      const windowStart = Math.max(0, position.fret - 1);
+      const windowEnd = Math.min(scale.fretCount, windowStart + 4);
+      return {
+        anchorStringIndex: position.stringIndex,
+        anchorFret: position.fret,
+        windowStart,
+        windowEnd,
+      };
+    })
+    .filter((window, index, windows) => windows.findIndex((entry) => entry.windowStart === window.windowStart && entry.windowEnd === window.windowEnd) === index)
+    .slice(0, CAGED_SHAPE_META.length);
 
-  return CAGED_TEMPLATES.map((template) => {
-    const anchorFrets = rootsByString.get(template.anchorStringIndex) ?? [0];
-    const anchorIndex = Math.min(template.anchorOccurrence, Math.max(anchorFrets.length - 1, 0));
-    const anchorFret = anchorFrets[anchorIndex] ?? anchorFrets[0] ?? 0;
+  const completedWindows = [...rootWindows];
+  while (completedWindows.length < CAGED_SHAPE_META.length) {
+    const previous = completedWindows[completedWindows.length - 1] ?? { anchorStringIndex: 0, anchorFret: 0, windowStart: 0, windowEnd: Math.min(scale.fretCount, 4) };
+    const windowStart = Math.min(scale.fretCount, previous.windowStart + 2);
+    const windowEnd = Math.min(scale.fretCount, windowStart + 4);
+    completedWindows.push({
+      anchorStringIndex: previous.anchorStringIndex,
+      anchorFret: windowStart,
+      windowStart,
+      windowEnd,
+    });
+  }
+
+  return CAGED_SHAPE_META.map((meta, index) => {
+    const window = completedWindows[index];
     return {
-      id: template.id,
-      label: template.label,
-      cagedName: template.cagedName,
-      anchorStringIndex: template.anchorStringIndex,
-      anchorFret,
-      stringRanges: template.stringOffsets
-        .map((range) => ({
-          stringIndex: range.stringIndex,
-          minFret: Math.max(0, anchorFret + range.minOffset),
-          maxFret: Math.min(scale.fretCount, anchorFret + range.maxOffset),
-        }))
-        .filter((range) => range.minFret <= range.maxFret),
+      id: meta.id,
+      label: meta.label,
+      cagedName: meta.cagedName,
+      anchorStringIndex: window.anchorStringIndex,
+      anchorFret: window.anchorFret,
+      stringRanges: Array.from({ length: 6 }, (_, stringIndex) => ({
+        stringIndex,
+        minFret: window.windowStart,
+        maxFret: window.windowEnd,
+      })),
     } satisfies ScaleShape;
   });
 }

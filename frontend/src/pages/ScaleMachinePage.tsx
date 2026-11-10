@@ -4,20 +4,20 @@ import { Card } from '../components/ui/Card';
 import { Fretboard } from '../components/fretboard/Fretboard';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
-import { buildScale, buildScalePracticePath, buildScaleShapePositionKeys, buildScaleShapes, buildScaleStepPositionKeys, SCALE_OPTIONS, TUNINGS } from '../lib/theory';
+import { buildScale, buildScalePracticePath, buildScaleShapePositionKeys, buildScaleShapes, buildScaleStepPositionKeys, normalizeNote, SCALE_OPTIONS, TUNINGS } from '../lib/theory';
 import { defaultSavedProgress, readGuestSnapshot, writeGuestSnapshot } from '../lib/storage';
-import type { Difficulty, FavoriteScale, ScaleResponse } from '../types';
+import type { Difficulty, FavoriteScale, LearnedScaleShape, ScaleResponse } from '../types';
 
 const rootNotes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const paceOptions: Array<{ label: Difficulty; bpm: number }> = [
-  { label: 'EASY', bpm: 32 },
-  { label: 'MEDIUM', bpm: 48 },
-  { label: 'HARD', bpm: 72 },
-  { label: 'EXPERT', bpm: 96 },
+  { label: 'EASY', bpm: 60 },
+  { label: 'MEDIUM', bpm: 90 },
+  { label: 'HARD', bpm: 120 },
+  { label: 'EXPERT', bpm: 150 },
 ];
 
-function bpmWindowMs(bpm: number) {
-  return Math.max(1800, Math.round((240000 / Math.max(30, bpm))));
+function beatDurationMs(bpm: number) {
+  return Math.round(60000 / Math.max(1, bpm));
 }
 
 export function ScaleMachinePage() {
@@ -29,13 +29,13 @@ export function ScaleMachinePage() {
   const [showLabels, setShowLabels] = useState(true);
   const [preferSharps, setPreferSharps] = useState(true);
   const [pacePreset, setPacePreset] = useState<Difficulty>('MEDIUM');
-  const [bpm, setBpm] = useState(48);
+  const [bpm, setBpm] = useState(90);
   const [isRunning, setIsRunning] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(bpmWindowMs(48) / 1000);
+  const [timeLeft, setTimeLeft] = useState(beatDurationMs(90) / 1000);
   const [shapeId, setShapeId] = useState('c-shape');
   const [favorites, setFavorites] = useState<FavoriteScale[]>([]);
-  const [activeFavoriteId, setActiveFavoriteId] = useState<number | null>(null);
+  const [learnedShapes, setLearnedShapes] = useState<LearnedScaleShape[]>([]);
   const runningStartedAt = useRef<number | null>(null);
   const elapsedBeforePauseMs = useRef(0);
 
@@ -44,10 +44,11 @@ export function ScaleMachinePage() {
     [fretCount, preferSharps, rootNote, scaleType, tuningId],
   );
   const [scale, setScale] = useState<ScaleResponse>(localScale);
-  const windowMs = bpmWindowMs(bpm);
+  const beatMs = beatDurationMs(bpm);
   const shapes = useMemo(() => buildScaleShapes(scale), [scale]);
   const activeShape = shapes.find((shape) => shape.id === shapeId) ?? shapes[0] ?? null;
   const scalePath = useMemo(() => buildScalePracticePath(scale, activeShape), [activeShape, scale]);
+  const windowMs = beatMs * Math.max(scalePath.length, 1);
   const activePosition = scalePath[stepIndex % Math.max(scalePath.length, 1)] ?? null;
   const shapePositionKeys = useMemo(() => buildScaleShapePositionKeys(scale, activeShape), [activeShape, scale]);
   const activeStepKeys = useMemo(() => buildScaleStepPositionKeys(scalePath, stepIndex), [scalePath, stepIndex]);
@@ -56,10 +57,38 @@ export function ScaleMachinePage() {
     [scale, shapePositionKeys],
   );
   const currentPracticeNote = activePosition?.note ?? scale.notes[stepIndex % Math.max(scale.notes.length, 1)] ?? scale.rootNote;
+  const matchesFavorite = (favorite: FavoriteScale) =>
+    normalizeNote(favorite.rootNote) === normalizeNote(rootNote) &&
+    favorite.scaleType === scaleType &&
+    favorite.tuningId === tuningId &&
+    favorite.fretRange === fretCount &&
+    (favorite.shapeId ?? 'c-shape') === (activeShape?.id ?? 'c-shape');
+  const isCurrentFavorite = useMemo(
+    () => favorites.some(matchesFavorite),
+    [activeShape?.id, favorites, fretCount, rootNote, scaleType, tuningId],
+  );
+  const isCurrentShapeLearned = useMemo(
+    () =>
+      learnedShapes.some(
+        (item) =>
+          normalizeNote(item.rootNote) === normalizeNote(rootNote) &&
+          item.scaleType === scaleType &&
+          item.shapeId === (activeShape?.id ?? 'c-shape'),
+      ),
+    [activeShape?.id, learnedShapes, rootNote, scaleType],
+  );
 
   useEffect(() => {
     async function hydrate() {
-      const snapshot = !token || isGuest ? readGuestSnapshot().savedProgress : await api.progress(token).catch(() => null);
+      const guestSnapshot = !token || isGuest ? readGuestSnapshot() : null;
+      const snapshot = guestSnapshot ? guestSnapshot.savedProgress : await api.progress(token!).catch(() => null);
+      if (guestSnapshot) {
+        setLearnedShapes(guestSnapshot.learnedScaleShapes ?? []);
+        setFavorites(guestSnapshot.favoriteScales ?? []);
+      } else if (token) {
+        api.learnedScaleShapes(token).then(setLearnedShapes).catch(() => setLearnedShapes([]));
+        api.favoriteScales(token).then(setFavorites).catch(() => setFavorites([]));
+      }
       if (!snapshot) {
         return;
       }
@@ -119,12 +148,10 @@ export function ScaleMachinePage() {
       guest.savedProgress = { ...guest.savedProgress, ...progressPayload };
       guest.dashboard.lastVisitedExercise = 'scale-machine';
       writeGuestSnapshot(guest);
-      setFavorites(guest.favoriteScales);
       return;
     }
 
     api.saveProgress(progressPayload, token).catch(() => undefined);
-    api.favoriteScales(token).then(setFavorites).catch(() => setFavorites([]));
   }, [bpm, fretCount, isGuest, pacePreset, preferSharps, rootNote, scaleType, shapeId, showLabels, stepIndex, token, tuningId]);
 
   useEffect(() => {
@@ -140,10 +167,11 @@ export function ScaleMachinePage() {
   }, [fretCount, isGuest, localScale, preferSharps, rootNote, scaleType, token, tuningId]);
 
   useEffect(() => {
+    setIsRunning(false);
     setStepIndex(0);
     setTimeLeft(windowMs / 1000);
     elapsedBeforePauseMs.current = 0;
-    runningStartedAt.current = isRunning ? Date.now() : null;
+    runningStartedAt.current = null;
   }, [bpm, rootNote, scaleType, tuningId, fretCount, preferSharps, shapeId]);
 
   useEffect(() => {
@@ -162,8 +190,7 @@ export function ScaleMachinePage() {
       const remainingMs = windowMs - elapsedMs;
       const remainingSeconds = Math.max(0, remainingMs / 1000);
       setTimeLeft(remainingSeconds);
-      const stepDuration = scalePath.length > 0 ? windowMs / scalePath.length : windowMs;
-      const nextIndex = Math.min(scalePath.length - 1, Math.max(0, Math.floor(elapsedMs / Math.max(1, stepDuration))));
+      const nextIndex = Math.min(scalePath.length - 1, Math.max(0, Math.floor(elapsedMs / Math.max(1, beatMs))));
       setStepIndex(nextIndex);
 
       if (remainingMs <= 0) {
@@ -175,7 +202,7 @@ export function ScaleMachinePage() {
     }, 100);
 
     return () => window.clearInterval(timer);
-  }, [isRunning, scalePath.length, windowMs]);
+  }, [beatMs, isRunning, scalePath.length, windowMs]);
 
   function applyPreset(option: { label: Difficulty; bpm: number }) {
     setPacePreset(option.label);
@@ -184,6 +211,9 @@ export function ScaleMachinePage() {
 
   async function saveFavorite() {
     const nickname = `${rootNote} ${scaleType.replace('_', ' ')} • ${activeShape?.cagedName ?? 'C'} shape`;
+    if (favorites.some(matchesFavorite)) {
+      return;
+    }
     if (!token || isGuest) {
       const guest = readGuestSnapshot();
       const favorite: FavoriteScale = {
@@ -199,16 +229,14 @@ export function ScaleMachinePage() {
         createdAt: new Date().toISOString(),
         lastPracticedAt: new Date().toISOString(),
       };
-      guest.favoriteScales = [favorite, ...guest.favoriteScales];
+      guest.favoriteScales = [favorite, ...guest.favoriteScales.filter((entry) => !matchesFavorite(entry))];
       writeGuestSnapshot(guest);
       setFavorites(guest.favoriteScales);
-      setActiveFavoriteId(favorite.id);
       return;
     }
 
     const favorite = await api.saveFavoriteScale({ rootNote, scaleType, tuningId, fretCount, nickname, preferSharps, shapeId: activeShape?.id }, token);
-    setFavorites((current) => [favorite, ...current]);
-    setActiveFavoriteId(favorite.id);
+    setFavorites((current) => [favorite, ...current.filter((entry) => !matchesFavorite(entry))]);
   }
 
   function loadFavorite(favorite: FavoriteScale) {
@@ -218,7 +246,6 @@ export function ScaleMachinePage() {
     setFretCount(favorite.fretRange);
     setPreferSharps(!favorite.rootNote.includes('b'));
     setShapeId(favorite.shapeId ?? 'c-shape');
-    setActiveFavoriteId(favorite.id);
     setStepIndex(0);
     elapsedBeforePauseMs.current = 0;
     runningStartedAt.current = isRunning ? Date.now() : null;
@@ -261,6 +288,42 @@ export function ScaleMachinePage() {
     setTimeLeft(windowMs / 1000);
   }
 
+  async function markCurrentShapeLearned() {
+    if (!activeShape || isCurrentShapeLearned) {
+      return;
+    }
+
+    if (!token || isGuest) {
+      const guest = readGuestSnapshot();
+      const learned = {
+        id: Date.now(),
+        rootNote: normalizeNote(rootNote),
+        scaleType,
+        shapeId: activeShape.id,
+        learnedAt: new Date().toISOString(),
+      } satisfies LearnedScaleShape;
+      guest.learnedScaleShapes = [
+        learned,
+        ...guest.learnedScaleShapes.filter(
+          (item) =>
+            !(normalizeNote(item.rootNote) === normalizeNote(rootNote) && item.scaleType === scaleType && item.shapeId === activeShape.id),
+        ),
+      ];
+      writeGuestSnapshot(guest);
+      setLearnedShapes(guest.learnedScaleShapes);
+      return;
+    }
+
+    const learned = await api.saveLearnedScaleShape({ rootNote, scaleType, shapeId: activeShape.id }, token);
+    setLearnedShapes((current) => [
+      learned,
+      ...current.filter(
+        (item) =>
+          !(normalizeNote(item.rootNote) === normalizeNote(learned.rootNote) && item.scaleType === learned.scaleType && item.shapeId === learned.shapeId),
+      ),
+    ]);
+  }
+
   return (
     <div className="space-y-6">
       <Card className="rounded-[34px] p-7">
@@ -270,10 +333,16 @@ export function ScaleMachinePage() {
               <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Scale Machine</p>
               <h1 className="mt-4 font-display text-4xl font-bold">Shape scale map fast.</h1>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <div className="rounded-2xl border border-cyan-400/24 bg-cyan-400/[0.07] px-4 py-3 text-sm text-cyan-100">BPM {bpm}</div>
-              <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm">Status <span className="ml-2 font-semibold text-cyan-100">{isRunning ? 'Running' : 'Paused'}</span></div>
-            </div>
+            <button
+              type="button"
+              onClick={saveFavorite}
+              aria-label="Save favorite scale"
+              className="flex h-[50px] w-[50px] items-center justify-center self-start rounded-2xl border border-white/10 bg-white/6 text-white/75 transition hover:bg-white/10 hover:text-cyan-100 xl:self-auto"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill={isCurrentFavorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
+                <path d="M12 21s-6.716-4.35-9.193-8.24C.47 9.097 2.126 4.5 6.758 4.5c2.07 0 3.42 1.132 4.202 2.25.782-1.118 2.132-2.25 4.202-2.25 4.632 0 6.288 4.597 3.951 8.26C18.716 16.65 12 21 12 21Z" />
+              </svg>
+            </button>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-4">
@@ -373,7 +442,6 @@ export function ScaleMachinePage() {
             >
               Spelling: <span className="text-white">{preferSharps ? 'Sharps' : 'Flats'}</span>
             </button>
-            <Button onClick={saveFavorite}>Save Favorite</Button>
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -391,21 +459,58 @@ export function ScaleMachinePage() {
         </div>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(260px,.46fr)_minmax(0,1.54fr)]">
         <div className="space-y-5">
+          <Card className="rounded-[30px] p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">Current Practice Note</p>
+            <p className="mt-3 text-4xl font-bold">{currentPracticeNote}</p>
+            <p className="mt-2 text-white/60">
+              {scale.rootNote} {scale.scaleType.replace('_', ' ')} • {activeShape?.label ?? 'Shape'} • note {(stepIndex % Math.max(scalePath.length, 1)) + 1} of {Math.max(scalePath.length, 1)}
+            </p>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/8">
+              <div
+                className="h-full rounded-full bg-cyan-300/80 transition-[width] duration-100"
+                style={{ width: `${Math.max(0, Math.min(100, (timeLeft / (windowMs / 1000)) * 100))}%` }}
+              />
+            </div>
+            <p className="mt-4 text-sm text-white/55">{timeLeft.toFixed(1)}s shape cycle</p>
+            <div className="mt-5">
+              <Button variant={isCurrentShapeLearned ? 'outline' : 'ghost'} onClick={markCurrentShapeLearned}>
+                {isCurrentShapeLearned
+                  ? `${scale.rootNote} ${activeShape?.cagedName ?? 'C'} Shape Learned`
+                  : `Mark ${scale.rootNote} ${activeShape?.cagedName ?? 'C'} Shape Learned`}
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="rounded-[30px] p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">Scale Notes</p>
+            <h2 className="mt-3 text-2xl font-semibold">
+              {scale.rootNote} {scale.scaleType.replace('_', ' ')}
+            </h2>
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-white/45">Notes In Scale</p>
+                <p className="mt-2 text-sm text-white/80">{scale.notes.join(' • ')}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="space-y-5 xl:min-w-0">
           <Card className="rounded-[30px] p-5">
             <Fretboard
               fretCount={fretCount}
               openNotes={TUNINGS.find((tuning) => tuning.id === tuningId)?.notes ?? TUNINGS[0].notes}
-            positions={scale.highlightedPositions}
-            mode="scale"
-            showLabels={showLabels}
-            activePositionKey={activePosition ? `${activePosition.stringIndex}-${activePosition.fret}` : null}
-            activePositionKeys={activeStepKeys}
-            shapePositionKeys={shapePositionKeys}
-            dimPositionKeys={dimPositionKeys}
-          />
-        </Card>
+              positions={scale.highlightedPositions}
+              mode="scale"
+              showLabels={showLabels}
+              activePositionKey={activePosition ? `${activePosition.stringIndex}-${activePosition.fret}` : null}
+              activePositionKeys={activeStepKeys}
+              shapePositionKeys={shapePositionKeys}
+              dimPositionKeys={dimPositionKeys}
+            />
+          </Card>
 
           <Card className="rounded-[30px] p-6">
             <div className="flex items-center justify-between">
@@ -423,7 +528,7 @@ export function ScaleMachinePage() {
                   type="button"
                   onClick={() => loadFavorite(favorite)}
                   className={`rounded-[24px] border p-4 text-left transition ${
-                    activeFavoriteId === favorite.id
+                    matchesFavorite(favorite)
                       ? 'border-cyan-300/24 bg-cyan-400/[0.07]'
                       : 'border-white/10 bg-white/[0.04] hover:border-white/14 hover:bg-white/[0.055]'
                   }`}
@@ -442,49 +547,6 @@ export function ScaleMachinePage() {
                   </div>
                 </button>
               ))}
-            </div>
-          </Card>
-        </div>
-
-        <div className="space-y-5">
-          <Card className="rounded-[30px] p-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">Current Practice Note</p>
-            <p className="mt-3 text-4xl font-bold">{currentPracticeNote}</p>
-            <p className="mt-2 text-white/60">
-              {scale.rootNote} {scale.scaleType.replace('_', ' ')} • {activeShape?.label ?? 'Shape'} • note {(stepIndex % Math.max(scalePath.length, 1)) + 1} of {Math.max(scalePath.length, 1)}
-            </p>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/8">
-              <div
-                className="h-full rounded-full bg-cyan-300/80 transition-[width] duration-100"
-                style={{ width: `${Math.max(0, Math.min(100, (timeLeft / (windowMs / 1000)) * 100))}%` }}
-              />
-            </div>
-            <p className="mt-4 text-sm text-white/55">{timeLeft.toFixed(1)}s shape cycle</p>
-          </Card>
-
-          <Card className="rounded-[30px] p-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-cyan-200/70">Intervals</p>
-            <h2 className="mt-3 text-2xl font-semibold">
-              {scale.rootNote} {scale.scaleType.replace('_', ' ')}
-            </h2>
-            <div className="mt-5 grid gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-white/45">Scale Notes</p>
-                <p className="mt-2 text-sm text-white/80">{scale.notes.join(' • ')}</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-white/45">Intervals / Degrees</p>
-                <p className="mt-2 text-sm text-white/80">{scale.intervals.join(' • ')}</p>
-              </div>
-              <div className="grid gap-2">
-                {scale.notes.map((note, index) => (
-                  <div key={`${note}-${index}`} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">
-                    <span className="text-white/60">Note {index + 1}</span>
-                    <span className="font-semibold text-white">{note}</span>
-                    <span className="text-cyan-100">{scale.intervals[index] ?? '-'}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </Card>
         </div>

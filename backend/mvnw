@@ -6,6 +6,46 @@ WRAPPER_DIR="$BASE_DIR/.mvn/wrapper"
 WRAPPER_PROPS="$WRAPPER_DIR/maven-wrapper.properties"
 WRAPPER_JAR="$WRAPPER_DIR/maven-wrapper.jar"
 
+java_major() {
+  "$1" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -n 1
+}
+
+JAVA_CMD=java
+if [ -n "${JAVA_HOME:-}" ]; then
+  JAVA_CMD="$JAVA_HOME/bin/java"
+fi
+
+JAVA_MAJOR=$(java_major "$JAVA_CMD")
+if [ -z "$JAVA_MAJOR" ] || [ "$JAVA_MAJOR" -lt 21 ]; then
+  # Homebrew JDKs are not always registered with macOS java_home.
+  if [ "$(uname -s)" = Darwin ]; then
+    DETECTED_JAVA_HOME=""
+    for JDK_HOME in /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home /usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home; do
+      if [ -x "$JDK_HOME/bin/javac" ]; then
+        DETECTED_JAVA_HOME="$JDK_HOME"
+        break
+      fi
+    done
+    if [ -z "$DETECTED_JAVA_HOME" ]; then
+      DETECTED_JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null || true)
+    fi
+    JAVA_HOME="$DETECTED_JAVA_HOME"
+    JAVA_CMD="${JAVA_HOME:-/nonexistent}/bin/java"
+    JAVA_MAJOR=$(java_major "$JAVA_CMD")
+  fi
+fi
+
+if [ -z "$JAVA_MAJOR" ] || [ "$JAVA_MAJOR" -lt 21 ]; then
+  echo "FretLogic requires JDK 21 or newer. Set JAVA_HOME to a compatible JDK." >&2
+  exit 1
+fi
+
+if [ -n "${JAVA_HOME:-}" ]; then
+  export JAVA_HOME
+  PATH="$JAVA_HOME/bin:$PATH"
+  export PATH
+fi
+
 if [ ! -f "$WRAPPER_JAR" ]; then
   if [ ! -f "$WRAPPER_PROPS" ]; then
     echo "Missing $WRAPPER_PROPS"
@@ -31,4 +71,4 @@ if [ ! -f "$WRAPPER_JAR" ]; then
   fi
 fi
 
-exec java -Dmaven.multiModuleProjectDirectory="$BASE_DIR" -cp "$WRAPPER_JAR" org.apache.maven.wrapper.MavenWrapperMain "$@"
+exec "$JAVA_CMD" -Dmaven.multiModuleProjectDirectory="$BASE_DIR" -cp "$WRAPPER_JAR" org.apache.maven.wrapper.MavenWrapperMain "$@"

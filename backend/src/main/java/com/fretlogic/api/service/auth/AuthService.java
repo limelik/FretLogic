@@ -61,8 +61,8 @@ public class AuthService {
                 .showNoteLabels(Boolean.TRUE)
                 .selectedRootNote("E")
                 .selectedScaleType("major")
-                .savedSettingsJson("{\"bpm\":72,\"pacePreset\":\"MEDIUM\",\"fretCount\":15,\"autoAdvance\":true,\"preferSharps\":true}")
-                .noteMachineStateJson("{\"score\":0,\"streak\":0,\"attempts\":0,\"correct\":0,\"bpm\":72,\"pacePreset\":\"MEDIUM\",\"fretCount\":15,\"autoAdvance\":true}")
+                .savedSettingsJson("{\"bpm\":90,\"pacePreset\":\"MEDIUM\",\"fretCount\":15,\"preferSharps\":true}")
+                .noteMachineStateJson("{\"bpm\":90,\"pacePreset\":\"MEDIUM\",\"fretCount\":15,\"targetNote\":\"C\",\"pathIndex\":0,\"selectedPromptNote\":\"ALL\",\"sequenceIndex\":0}")
                 .scaleMachineStateJson("{\"rootNote\":\"E\",\"scaleType\":\"major\"}")
                 .build());
 

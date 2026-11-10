@@ -83,6 +83,14 @@ public class User implements UserDetails {
     @JsonIgnore
     private List<FavoriteScale> favoriteScales;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<LearnedNote> learnedNotes;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<LearnedScaleShape> learnedScaleShapes;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
